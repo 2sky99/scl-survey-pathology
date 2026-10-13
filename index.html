@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#003CC4">
+<title>SCL CONNECT 설문</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+/* =========================================================
+   ▼ 디자인 설정 — 여기 값만 바꾸면 전체에 적용됩니다
+   ========================================================= */
+:root{
+  --primary:#003CC4;        /* 메인 컬러 (진검 설문 #0044D9보다 반 톤 어둡게) */
+  --primary-dark:#00309C;   /* 눌렀을 때 */
+  --primary-deep:#002479;   /* 메인 화면 그라데이션 끝 */
+  --primary-soft:#ECF1FD;   /* 선택된 카드 배경 */
+  --primary-tint:#DEE7FB;   /* 아이콘 배경 */
+  --bg:#F4F6FA;             /* 페이지 배경 */
+  --card:#FFFFFF;
+  --text:#111827;
+  --sub:#6B7280;
+  --mute:#9CA3AF;
+  --line:#E5E8EE;
+  --error:#E5484D;
+  --radius:16px;            /* 카드 모서리 */
+  --btn-radius:28px;        /* 버튼 모서리 (타원형) */
+  --shadow:0 1px 2px rgba(17,24,39,.04),0 6px 20px rgba(17,24,39,.05);
+}
+/* ========================================================= */
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+html{overflow-x:hidden}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:var(--bg);color:var(--text);font-size:16px;line-height:1.5;min-height:100dvh;word-break:keep-all;
+  -webkit-font-smoothing:antialiased;transition:background .3s}
+button,input,select,textarea{font-family:inherit}
+.app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;position:relative;
+  --gx:max(20px, env(safe-area-inset-left));--gy:max(20px, env(safe-area-inset-right))}
+
+/* ---------- 상단 진행바 ---------- */
+header.top{position:sticky;top:0;z-index:5;background:rgba(244,246,250,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  padding:calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left))}
+.top-row{display:flex;align-items:center;height:40px}
+.back{width:40px;height:40px;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;color:var(--text);cursor:pointer;margin-left:-6px}
+.back:active{background:rgba(0,0,0,.05)}
+.back.hide{visibility:hidden}
+.step-label{margin-left:auto;font-size:13px;font-weight:600;color:var(--mute);font-variant-numeric:tabular-nums}
+.step-label b{color:var(--primary)}
+.segs{display:flex;gap:4px;margin-top:8px;padding:0 4px}
+.segs i{flex:1;height:4px;border-radius:4px;background:var(--line);overflow:hidden;position:relative}
+.segs i::after{content:"";position:absolute;inset:0;background:var(--primary);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+.segs i.on::after{transform:scaleX(1)}
+
+main{flex:1;padding:4px var(--gy) 12px var(--gx);display:flex;flex-direction:column}
+.screen{display:none}
+.screen.active{display:block}
+.screen.active>*{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+.screen.active>*:nth-child(2){animation-delay:.05s}
+.screen.active>*:nth-child(3){animation-delay:.1s}
+.screen.active>*:nth-child(4){animation-delay:.15s}
+.screen.active>*:nth-child(5){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--primary);margin:14px 0 8px}
+h2{font-size:clamp(21px, 6.2vw, 24px);line-height:1.38;font-weight:700;margin:0 0 8px;letter-spacing:-.03em}
+.desc{color:var(--sub);margin:0 0 24px;font-size:15px}
+
+/* ---------- 입력 ---------- */
+.field{margin-bottom:16px}
+.lbl{display:block;font-weight:600;font-size:14px;margin-bottom:8px;color:#374151}
+.req{color:var(--primary);margin-left:2px}
+.input{width:100%;height:52px;border:1.5px solid var(--line);border-radius:14px;padding:0 16px;font-size:16px;background:var(--card);
+  color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+.input::placeholder{color:#B8BEC9}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(0,60,196,.12)}
+.err{color:var(--error);font-size:13px;margin-top:8px;display:none;align-items:center;gap:4px}
+.err::before{content:"!";width:15px;height:15px;border-radius:50%;background:var(--error);color:#fff;font-size:10px;font-weight:800;display:inline-grid;place-items:center}
+.field.invalid .err{display:flex}
+.field.invalid .input{border-color:var(--error)}
+.field.invalid .toggle,.field.invalid .opt:not(.on){border-color:#F5C2C4}
+
+/* 거래처 토글 (세그먼트) */
+.toggle{display:grid;grid-template-columns:1fr 1fr;background:#E9ECF2;border-radius:14px;padding:4px;position:relative;border:1.5px solid transparent}
+.toggle label{position:relative;z-index:1;height:48px;display:grid;place-items:center;font-weight:600;color:var(--sub);cursor:pointer;transition:color .2s}
+.toggle input{position:absolute;opacity:0;pointer-events:none}
+.toggle label.on{color:var(--primary)}
+.toggle .thumb{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);background:#fff;border-radius:11px;box-shadow:0 1px 3px rgba(17,24,39,.1);
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s;opacity:0}
+.toggle.has .thumb{opacity:1}
+.toggle.right .thumb{transform:translateX(100%)}
+
+/* 선택 카드 */
+.list{display:flex;flex-direction:column;gap:10px}
+.opt{position:relative;display:flex;align-items:center;gap:14px;background:var(--card);border:1.5px solid transparent;border-radius:var(--radius);
+  padding:16px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s;box-shadow:var(--shadow);user-select:none}
+.opt:active{transform:scale(.985)}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt .ic{width:44px;height:44px;flex:none;border-radius:12px;background:var(--primary-tint);color:var(--primary);display:grid;place-items:center;transition:.2s}
+.opt .tx{flex:1;min-width:0}
+.opt .tx b{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em}
+.opt .tx small{display:block;color:var(--sub);font-size:13px;margin-top:2px}
+.opt .mk{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid #D4D9E1;display:grid;place-items:center;transition:.15s;color:#fff}
+.opt.multi .mk{border-radius:8px}
+.opt .mk svg{opacity:0;transform:scale(.6);transition:.15s}
+.opt.on{border-color:var(--primary);background:var(--primary-soft)}
+.opt.on .ic{background:var(--primary);color:#fff}
+.opt.on .mk{background:var(--primary);border-color:var(--primary)}
+.opt.on .mk svg{opacity:1;transform:none}
+.big .opt{padding:20px 18px}
+.big .opt .ic{width:52px;height:52px;border-radius:14px}
+.count{font-size:13px;color:var(--sub);margin:-12px 0 14px}
+.count b{color:var(--primary)}
+
+/* 예/아니오 카드 (세로 목록형) */
+.yn{display:flex;flex-direction:column;gap:10px}
+/* 동의 */
+.consent{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1.5px solid transparent}
+.field.invalid .consent{border-color:#F5C2C4}
+.consent .chk{display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;font-weight:600;font-size:15px}
+.consent .chk input{position:absolute;opacity:0}
+.consent .box{width:24px;height:24px;border-radius:8px;border:2px solid #D4D9E1;display:grid;place-items:center;color:#fff;flex:none;transition:.15s}
+.consent .box svg{opacity:0}
+.consent .chk.on .box{background:var(--primary);border-color:var(--primary)}
+.consent .chk.on .box svg{opacity:1}
+.consent .tag{color:var(--primary);font-size:13px;font-weight:700;margin-right:2px}
+.consent .tag.opt-tag{color:var(--sub)}
+.consent details{border-top:1px solid var(--line);font-size:13px;color:var(--sub)}
+.consent summary{list-style:none;padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.consent summary::-webkit-details-marker{display:none}
+.consent summary::after{content:"";width:7px;height:7px;border:solid var(--mute);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);transition:.2s;margin-top:-4px}
+.consent details[open] summary::after{transform:rotate(-135deg);margin-top:4px}
+.consent dl{margin:0;padding:0 16px 14px;display:grid;grid-template-columns:64px 1fr;gap:6px 10px}
+.consent dt{color:var(--text);font-weight:600}
+.consent dd{margin:0}
+.consent .note{grid-column:1/-1;margin-top:4px;color:var(--mute)}
+
+.reveal{display:none;margin-top:20px}
+.reveal.show{display:block;animation:rise .35s both}
+
+/* ---------- 하단 버튼 ---------- */
+footer.cta{position:relative;z-index:4;padding:12px var(--gy) calc(clamp(20px, 5vh, 48px) + env(safe-area-inset-bottom)) var(--gx);
+  background:transparent}
+.btn{width:100%;height:58px;border:0;border-radius:var(--btn-radius);background:var(--primary);color:#fff;font-size:17px;font-weight:700;letter-spacing:-.01em;
+  cursor:pointer;transition:background .15s,transform .1s,box-shadow .15s;box-shadow:0 8px 20px rgba(0,60,196,.25)}
+.btn:active{background:var(--primary-dark);transform:scale(.985)}
+.btn:disabled{background:#C4CAD4;box-shadow:none;cursor:default}
+
+/* ---------- ① 메인 ---------- */
+body.main-mode{background:var(--primary)}
+body.main-mode .app{background:
+  radial-gradient(120% 60% at 100% 0%,rgba(255,255,255,.16),transparent 60%),
+  linear-gradient(180deg,var(--primary) 0%,var(--primary) 55%,var(--primary-deep) 100%)}
+body.main-mode footer.cta{background:none}
+body.main-mode .btn{background:#fff;color:var(--primary);box-shadow:0 10px 30px rgba(0,20,80,.3)}
+body.main-mode .btn:active{background:#E8EFFF}
+body.main-mode main{padding-top:0}
+.screen.active[data-screen="main"]{display:flex;flex-direction:column;flex:1;min-height:0}
+.intro{color:#fff;padding-top:calc(clamp(44px, 12vh, 112px) + env(safe-area-inset-top));position:relative;z-index:1}
+.intro .brand{font-size:clamp(31px, 9.6vw, 38px);font-weight:800;letter-spacing:-.01em;line-height:1.2;margin-bottom:14px}
+.intro h1{color:#fff;font-size:clamp(20px, 6.2vw, 24px);font-weight:500;line-height:1.5;margin:0;letter-spacing:-.02em;opacity:.9}
+.hero-art{position:relative;flex:1;min-height:0;margin:clamp(12px, 3vh, 36px) calc(-1 * var(--gy)) 12px 0;overflow:hidden}
+.hero-art svg{position:absolute;right:-24px;top:50%;transform:translateY(-50%);height:78%;max-height:270px;width:auto;aspect-ratio:400/340;max-width:none;opacity:.7}
+.hero-art .n{animation:float 6s ease-in-out infinite}
+.hero-art .n2{animation-delay:-2s}.hero-art .n3{animation-delay:-4s}
+.hero-art .pulse{transform-origin:center;transform-box:fill-box;animation:pulse 2.8s ease-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%{transform:scale(1);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+.meta{display:flex;gap:8px;margin-bottom:14px;position:relative;z-index:1}
+.meta span{font-size:13px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  padding:6px 12px;border-radius:20px;backdrop-filter:blur(4px)}
+
+/* ---------- ⑦ 완료 (흰 배경) ---------- */
+body.done-mode,body.done-mode .app{background:#fff}
+.screen.active[data-screen="done"]{display:flex;flex-direction:column;flex:1;text-align:center;
+  padding:env(safe-area-inset-top) 0 calc(clamp(16px, 4vh, 40px) + env(safe-area-inset-bottom))}
+.dn-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0 8px}
+.dn-check{width:clamp(80px, 23vw, 96px);aspect-ratio:1;border-radius:50%;background:var(--primary);display:grid;place-items:center;margin-bottom:24px;
+  box-shadow:0 10px 24px rgba(0,60,196,.22);animation:popin .55s cubic-bezier(.2,1.4,.4,1) both}
+.dn-check svg{width:46%;height:46%}
+.dn-alert{width:clamp(80px, 23vw, 96px);aspect-ratio:1;border-radius:50%;background:#F59E0B;color:#fff;display:grid;place-items:center;margin-bottom:24px;
+  font-size:clamp(40px, 12vw, 50px);font-weight:800;box-shadow:0 10px 24px rgba(245,158,11,.25);animation:popin .55s cubic-bezier(.2,1.4,.4,1) both}
+.dn-alert[hidden],.dn-check[hidden]{display:none}
+.dup .dn-ticket .no{color:var(--sub)}
+.dn-check svg path{stroke-dasharray:30;stroke-dashoffset:30;animation:draw .45s .35s ease forwards}
+.dn-center h2{font-size:clamp(26px, 7.4vw, 30px);font-weight:700;color:var(--text);margin:0 0 8px;letter-spacing:-.03em}
+.dn-center p{margin:0;font-size:clamp(15px, 4.4vw, 17px);color:var(--sub)}
+.dn-center .dn-msg{margin:clamp(20px, 4vh, 32px) 0 clamp(20px, 4vh, 32px);color:var(--text);font-size:clamp(16px, 4.6vw, 18px);font-weight:600;line-height:1.5;color:var(--text)}
+.dn-ticket{width:100%;background:var(--bg);border-radius:20px;padding:20px 22px 18px;text-align:left}
+.dn-ticket .lab{text-align:center;font-size:13px;font-weight:600;color:var(--sub)}
+.dn-ticket .no{text-align:center;font-size:clamp(36px, 11vw, 44px);font-weight:800;color:var(--primary);letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+.dn-ticket .cut{height:1px;background:var(--line);margin:16px 0 14px}
+.dn-ticket dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:10px 16px;font-size:15px}
+.dn-ticket dt{color:var(--sub)}
+.dn-ticket dd{margin:0;text-align:right;font-weight:600;color:var(--text)}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes popin{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}
+.toast{position:fixed;left:50%;bottom:130px;transform:translate(-50%,10px);background:rgba(17,24,39,.92);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;
+  opacity:0;pointer-events:none;transition:.25s;max-width:88%;text-align:center;z-index:10}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:r .7s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes r{to{transform:rotate(360deg)}}
+/* 작은 화면 (아이폰 SE, 갤럭시 소형 등) */
+@media (max-width:359px){
+  .yn{grid-template-columns:1fr}
+  .yn .opt{min-height:0;flex-direction:row;align-items:center}
+  .yn .opt .mk{position:static}
+  .opt{padding:14px;gap:12px}
+  .opt .ic{width:40px;height:40px}
+  .consent dl{grid-template-columns:1fr}
+}
+@media (max-height:700px){
+  .desc{margin-bottom:20px}
+  .big .opt{padding:16px}
+  .yn .opt{min-height:112px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body class="main-mode">
+<div class="app">
+  <header class="top" id="topbar" hidden>
+    <div class="top-row">
+      <button class="back" id="backBtn" aria-label="이전">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <span class="step-label" id="stepLabel"></span>
+    </div>
+    <div class="segs" id="segs"></div>
+  </header>
+
+  <main>
+    <!-- ① 메인 -->
+    <section class="screen active" data-screen="main">
+      <div class="intro">
+        <div class="meta"><span>🎁 KSP2026 설문 이벤트</span></div>
+        <div class="brand">SCL CONNECT</div>
+        <h1>간단한 설문에 참여하고<br>현장에서 선물 받아 가세요!</h1>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 400 340" fill="none">
+          <g stroke="rgba(255,255,255,.22)" stroke-width="1.5">
+            <circle cx="250" cy="170" r="150" stroke-dasharray="2 6"/>
+            <circle cx="250" cy="170" r="95"/>
+          </g>
+          <g stroke="rgba(255,255,255,.35)" stroke-width="1.5">
+            <path d="M250 170L150 95M250 170L345 110M250 170L175 265M250 170L330 250M150 95L345 110M175 265L330 250M150 95L95 190L175 265"/>
+          </g>
+          <g class="n"><circle cx="150" cy="95" r="14" fill="rgba(255,255,255,.9)"/></g>
+          <g class="n n2"><circle cx="345" cy="110" r="10" fill="rgba(255,255,255,.7)"/></g>
+          <g class="n n3"><circle cx="175" cy="265" r="11" fill="rgba(255,255,255,.75)"/></g>
+          <g class="n n2"><circle cx="330" cy="250" r="16" fill="rgba(255,255,255,.35)" stroke="#fff" stroke-width="2"/></g>
+          <g class="n"><circle cx="95" cy="190" r="7" fill="#fff"/></g>
+          <circle class="pulse" cx="250" cy="170" r="28" fill="rgba(255,255,255,.4)"/>
+          <circle cx="250" cy="170" r="28" fill="#fff"/>
+          <path d="M239 170l7 7 14-15" stroke="var(--primary)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ② 기본정보 -->
+    <section class="screen" data-screen="basic">
+      <span class="eyebrow">STEP 01</span>
+      <h2>간단한 정보를 입력해 주세요</h2>
+      <p class="desc">관심 분야에 맞는 자료를 이메일로 보내 드립니다.</p>
+      <div>
+        <div class="field" data-f="clientType">
+          <span class="lbl">SCL 거래 여부<span class="req">*</span></span>
+          <div class="toggle" id="clientToggle">
+            <span class="thumb"></span>
+            <label><input type="radio" name="clientType" value="거래처">거래처</label>
+            <label><input type="radio" name="clientType" value="비거래처">비거래처</label>
+          </div>
+          <div class="err">거래 여부를 선택해 주세요.</div>
+        </div>
+        <div class="field" data-f="name">
+          <label class="lbl" for="name">이름<span class="req">*</span></label>
+          <input class="input" type="text" id="name" autocomplete="name" placeholder="이름을 입력해 주세요">
+          <div class="err">이름을 입력해 주세요.</div>
+        </div>
+        <div class="field" data-f="region">
+          <label class="lbl" for="region">지역<span class="req">*</span></label>
+          <input class="input" type="text" id="region" autocomplete="address-level2" placeholder="예: 경기 용인시">
+          <div class="err">지역을 입력해 주세요.</div>
+        </div>
+        <div class="field" data-f="hospital">
+          <label class="lbl" for="hospital">소속<span class="req">*</span></label>
+          <input class="input" type="text" id="hospital" autocomplete="organization" placeholder="예: OO병원">
+          <div class="err">소속을 입력해 주세요.</div>
+        </div>
+        <div class="field" data-f="email">
+          <label class="lbl" for="email">이메일<span class="req">*</span></label>
+          <input class="input" type="email" id="email" autocomplete="email" inputmode="email" placeholder="example@hospital.com">
+          <div class="err">이메일 주소를 다시 확인해 주세요.</div>
+        </div>
+        <div class="field" data-f="consent" style="margin-bottom:28px">
+          <div class="consent">
+            <label class="chk" id="consentChk"><input type="checkbox" id="consent">
+              <span class="box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>
+              <span><span class="tag">[필수]</span> 개인정보 수집·이용 동의</span>
+            </label>
+            <details>
+              <summary>내용 보기</summary>
+              <dl>
+                <dt>수집 주체</dt><dd>SCL(서울의과학연구소)</dd>
+                <dt>수집 항목</dt><dd>이름, 지역, 소속, 이메일, 연락처(상담 희망 시)</dd>
+                <dt>이용 목적</dt><dd>요청하신 자료 및 안내 메일 발송, 상담 신청 시 연락, 고객 관리</dd>
+                <dt>보유 기간</dt><dd>수집일로부터 3년 (기간 경과 시 즉시 파기)</dd>
+                <dd class="note">동의를 거부할 수 있으며, 거부 시 설문 참여 및 선물 제공이 제한됩니다.</dd>
+              </dl>
+            </details>
+          </div>
+          <div class="err">개인정보 수집·이용에 동의해 주세요.</div>
+        </div>
+        <div class="field" data-f="marketing" style="margin-top:-18px;margin-bottom:28px">
+          <div class="consent">
+            <label class="chk" id="marketingChk"><input type="checkbox" id="marketing">
+              <span class="box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>
+              <span><span class="tag opt-tag">[선택]</span> 마케팅 정보 수신 동의</span>
+            </label>
+            <details>
+              <summary>내용 보기</summary>
+              <dl>
+                <dt>수집 항목</dt><dd>이메일, 연락처</dd>
+                <dt>이용 목적</dt><dd>신규 검사 및 서비스 소개 등 광고성 정보 발송</dd>
+                <dt>보유 기간</dt><dd>동의 철회 시 또는 수집일로부터 3년</dd>
+                <dd class="note">동의하지 않아도 설문 참여 및 선물 제공에는 제한이 없습니다.</dd>
+              </dl>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 관심 콘텐츠 -->
+    <section class="screen" data-screen="interest">
+      <span class="eyebrow">STEP 02</span>
+      <h2>어떤 정보가<br>가장 궁금하신가요?</h2>
+      <p class="desc">관심 있는 정보를 선택해 주세요.</p>
+      <div class="field" data-f="interest">
+        <div class="list big" id="interestList"></div>
+        <div class="err">관심 있는 정보를 선택해 주세요.</div>
+      </div>
+    </section>
+
+    <!-- ④ 세부 정보 -->
+    <section class="screen" data-screen="detail">
+      <span class="eyebrow">STEP 03</span>
+      <h2 id="detailTitle"></h2>
+      <p class="desc">선택하신 자료를 이메일로 보내 드립니다.</p>
+      <div class="count" id="detailCount">복수 선택 가능</div>
+      <div class="field" data-f="detail">
+        <div class="list" id="detailList"></div>
+        <div class="err">1개 이상 선택해 주세요.</div>
+      </div>
+    </section>
+
+    <!-- ⑤ 상담 -->
+    <section class="screen" data-screen="consult">
+      <span class="eyebrow">STEP 04</span>
+      <h2>더 자세한 상담을<br>원하시나요?</h2>
+      <p class="desc">SCL 담당자가 안내해 드립니다.</p>
+      <div class="field" data-f="consult">
+        <div class="yn" data-yn="consult"></div>
+        <div class="err">상담 신청 여부를 선택해 주세요.</div>
+      </div>
+      <div class="reveal" id="phoneWrap1"></div>
+    </section>
+
+    <!-- ⑥ 검사 비용 상담 -->
+    <section class="screen" data-screen="cost">
+      <span class="eyebrow">STEP 05</span>
+      <h2>검사 비용 상담도<br>받아 보시겠어요?</h2>
+      <p class="desc">검사 비용 담당자가 따로 안내해 드립니다.</p>
+      <div class="field" data-f="cost">
+        <div class="yn" data-yn="cost"></div>
+        <div class="err">상담 신청 여부를 선택해 주세요.</div>
+      </div>
+      <div class="reveal" id="phoneWrap2"></div>
+    </section>
+
+    <!-- ⑦ 완료 -->
+    <section class="screen" data-screen="done">
+      <div class="dn-center">
+        <div class="dn-check" id="dnIcon"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <div class="dn-alert" id="dnAlert" hidden>!</div>
+        <h2 id="dnTitle">설문 완료!</h2>
+        <p id="dnSub">참여해 주셔서 감사합니다.</p>
+        <p class="dn-msg" id="dnMsg">이 화면을 보여 주시고<br>선물을 받아 가세요! 🎁</p>
+        <div class="dn-ticket">
+          <div class="lab">접수 번호</div>
+          <div class="no" id="tNo">-</div>
+          <div class="cut"></div>
+          <dl>
+            <dt>이름</dt><dd id="tName"></dd>
+            <dt>소속</dt><dd id="tHosp"></dd>
+            <dt id="tWhenL">접수 일시</dt><dd id="tWhen"></dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- 연락처 입력 (⑤/⑥ 공용, JS로 이동) -->
+    <div class="field" data-f="phone" id="phoneField">
+      <label class="lbl" for="phone">연락처<span class="req">*</span></label>
+      <input class="input" type="tel" id="phone" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000" value="010-" maxlength="13">
+      <div class="err">연락처를 다시 확인해 주세요.</div>
+    </div>
+  </main>
+
+  <footer class="cta" id="cta">
+    <button class="btn" id="nextBtn">설문 시작하기</button>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   ▼ 설정 — 구글 Apps Script 배포 URL을 붙여넣으세요.
+   비워 두면 '미리 보기 모드'로 동작합니다 (저장 안 됨).
+   ========================================================= */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyFThoZ_uTtsGiQuat58BJZKvZBnJ3fqiPb-KWQHaUUN47UgHyHlPAqTBzQ4fyvhvQ/exec";
+/* ▼ (선택) Code.gs 의 API_TOKEN 과 같은 값. 비워 두면 사용 안 함 */
+const SCRIPT_TOKEN = "";
+
+/* ▼ 선택지 — 실제 검사명/자료명으로 바꾸세요 (아이콘: tube, flask, building, book, heart, pen, globe, shield) */
+const INTEREST_OPTIONS = [
+  ["SCL 기관 소개", "브로슈어·리플릿", "building"],
+  ["SCL 검사 정보", "검사 안내 자료", "tube"],
+];
+const DETAIL_OPTIONS = {
+  "SCL 검사 정보": {
+    title: "관심 있는 검사를<br>모두 선택해 주세요",
+    items: [
+      ["검사명 1 (입력 예정)", "", "tube"],
+      ["검사명 2 (입력 예정)", "", "tube"],
+      ["검사명 3 (입력 예정)", "", "tube"],
+    ]
+  }
+};
+/* 'SCL 기관 소개'는 선택 없이 자료 전체를 보내므로, 시트에는 아래 값이 자동 기록됨 */
+const ORG_CONTENTS_ALL = "브로슈어, 리플릿";
+/* 상담(⑤) 페이지를 건너뛰는 카테고리 */
+const SKIP_CONSULT = ["항균제 내성 소식"];
+const YN_OPTIONS = {
+  consult: [["예", "영업 사원 상담 신청하기", "연락처를 남겨 주시면 연락드리겠습니다.", "phone"], ["아니오", "괜찮습니다", "자료만 이메일로 받겠습니다.", "mail"]],
+  cost:    [["예", "검사 비용 상담 신청하기", "연락처를 남겨 주시면 연락드리겠습니다.", "receipt"], ["아니오", "괜찮습니다", "다음에 문의하겠습니다.", "mail"]],
+};
+/* ========================================================= */
+
+const ICONS = {
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  shield:'<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+  tube:'<rect x="8.5" y="2" width="7" height="4" rx="1"/><path d="M9.5 6v12.5a2.5 2.5 0 0 0 5 0V6"/><path d="M9.5 12.5h5"/>',
+  flask:'<path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/>',
+  building:'<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M3 21h18M8 7h4M8 11h4M8 15h4"/>',
+  book:'<path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6.5A2.5 2.5 0 0 0 4 20.5 2.5 2.5 0 0 0 6.5 23H20"/><path d="M8 7h8"/>',
+  heart:'<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/>',
+  pen:'<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+};
+const svg = (k, s=24) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]||""}</svg>`;
+const MK = '<span class="mk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function optHTML(type, name, value, title, sub, icon, multi){
+  return `<label class="opt${multi?" multi":""}"><input type="${type}" name="${name}" value="${esc(value)}">
+    <span class="ic">${svg(icon)}</span><span class="tx"><b>${esc(title)}</b>${sub?`<small>${esc(sub)}</small>`:""}</span>${MK}</label>`;
+}
+
+const DONE_KEY = "scl_survey_patho_done_v1";
+const $ = s => document.querySelector(s);
+const state = { clientType:"", name:"", region:"", hospital:"", email:"", consent:false, marketing:false,
+  interest:"", details:[], consult:"", cost:"", phone:"" };
+
+// 선택지 그리기
+$("#interestList").innerHTML = INTEREST_OPTIONS.map(([v,s,i]) => optHTML("radio","interest",v,v,s,i)).join("");
+document.querySelectorAll("[data-yn]").forEach(el => {
+  const n = el.dataset.yn;
+  el.innerHTML = YN_OPTIONS[n].map(([v,t,s,i]) => optHTML("radio",n,v,t,s,i)).join("");
+});
+
+// 화면 흐름: 세부 선택(④)은 세부 항목이 있는 카테고리만, 검사 비용 상담(⑥)은 'SCL 검사 정보' 선택자에게만
+// 관심 정보 화면에서는 지금 고른 값을 기준으로 흐름을 계산 (버튼 문구·단계 수가 바로 바뀌도록)
+function curInterest(){ return current === "interest" ? (radio("interest") || state.interest) : state.interest; }
+function flow(){
+  const it = curInterest();
+  const f = ["main","basic","interest"];
+  if (!it || DETAIL_OPTIONS[it]) f.push("detail");
+  if (SKIP_CONSULT.indexOf(it) < 0) f.push("consult");
+  if (it === "SCL 검사 정보") f.push("cost");
+  f.push("done");
+  return f;
+}
+let current = "main";
+
+function render(){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.dataset.screen === current));
+  const f = flow(), idx = f.indexOf(current);
+  document.body.classList.toggle("main-mode", current === "main");
+  document.body.classList.toggle("done-mode", current === "done");
+  $("#topbar").hidden = current === "main" || current === "done";
+  $("#backBtn").classList.toggle("hide", idx <= 1);
+  updateNav();
+  // STEP 번호 자동
+  const eb = document.querySelector(`.screen[data-screen="${current}"] .eyebrow`);
+  if (eb) eb.textContent = "STEP " + String(idx).padStart(2, "0");
+  $("#cta").hidden = current === "done";
+  document.querySelector('meta[name="theme-color"]').content = current === "main" ? "#003CC4" : current === "done" ? "#FFFFFF" : "#F4F6FA";
+  placePhone();
+  syncChecked();
+  window.scrollTo(0, 0);
+}
+
+// 단계 표시·버튼 문구 갱신
+function updateNav(){
+  const f = flow(), idx = f.indexOf(current), total = f.length - 2;
+  $("#stepLabel").innerHTML = `<b>${idx}</b> / ${total}`;
+  $("#segs").innerHTML = Array.from({length: total}, (_, i) => `<i class="${i < idx ? "on" : ""}"></i>`).join("");
+  const next = f[idx + 1];
+  $("#nextBtn").textContent = current === "main" ? "설문 시작하기" : next === "done" ? "제출하기" : "다음";
+}
+
+function needPhone(){ return state.consult === "예" || state.cost === "예"; }
+function placePhone(){
+  const pf = $("#phoneField"), w1 = $("#phoneWrap1"), w2 = $("#phoneWrap2");
+  if (state.consult === "예") { w1.appendChild(pf); w1.classList.add("show"); w2.classList.remove("show"); }
+  else if (state.cost === "예") { w2.appendChild(pf); w2.classList.add("show"); w1.classList.remove("show"); }
+  else { w1.classList.remove("show"); w2.classList.remove("show"); w1.appendChild(pf); }
+}
+
+// 선택 상태 표시 (구형 폰 호환용으로 JS에서 처리)
+function syncChecked(){
+  document.querySelectorAll(".opt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  document.querySelectorAll(".toggle label").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  const t = $("#clientToggle"), v = radio("clientType");
+  t.classList.toggle("has", !!v); t.classList.toggle("right", v === "비거래처");
+  $("#consentChk").classList.toggle("on", $("#consent").checked);
+  $("#marketingChk").classList.toggle("on", $("#marketing").checked);
+  const n = document.querySelectorAll('input[name="detail"]:checked').length;
+  $("#detailCount").innerHTML = n ? `<b>${n}개</b> 선택됨` : "복수 선택 가능";
+}
+
+function buildDetails(){
+  const cfg = DETAIL_OPTIONS[state.interest];
+  if (!cfg) return;
+  $("#detailTitle").innerHTML = cfg.title;
+  $("#detailList").innerHTML = cfg.items.map(([v,s,i]) => optHTML("checkbox","detail",v,v,s,i,true)).join("");
+  document.querySelectorAll('input[name="detail"]').forEach(i => i.checked = state.details.includes(i.value));
+}
+
+function setErr(f, on){ document.querySelector(`[data-f="${f}"]`).classList.toggle("invalid", on); return !on; }
+const radio = n => (document.querySelector(`input[name="${n}"]:checked`) || {}).value || "";
+
+function validate(){
+  let ok = true;
+  if (current === "basic"){
+    state.clientType = radio("clientType");
+    state.name = $("#name").value.trim();
+    state.region = $("#region").value.trim();
+    state.hospital = $("#hospital").value.trim();
+    state.email = $("#email").value.trim();
+    state.consent = $("#consent").checked;
+    state.marketing = $("#marketing").checked;
+    ok = setErr("clientType", !state.clientType) & setErr("name", !state.name) & setErr("region", !state.region) & setErr("hospital", !state.hospital)
+       & setErr("email", !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)) & setErr("consent", !state.consent);
+  }
+  if (current === "interest"){
+    const v = radio("interest");
+    if (v !== state.interest){ state.details = []; if (v !== "SCL 검사 정보") state.cost = ""; }
+    state.interest = v;
+    ok = setErr("interest", !v);
+    if (ok) buildDetails();
+  }
+  if (current === "detail"){
+    state.details = [...document.querySelectorAll('input[name="detail"]:checked')].map(i => i.value);
+    ok = setErr("detail", state.details.length === 0);
+  }
+  if (current === "consult" || current === "cost"){
+    const v = radio(current); state[current] = v;
+    ok = setErr(current, !v);
+    const phoneHere = (current === "consult" && v === "예") || (current === "cost" && v === "예" && state.consult !== "예");
+    if (ok && phoneHere){
+      state.phone = $("#phone").value.trim();
+      ok = setErr("phone", !/^01[0-9]-?\d{3,4}-?\d{4}$/.test(state.phone));
+    }
+  }
+  if (!ok){ const e = document.querySelector(".screen.active .invalid"); if (e) e.scrollIntoView({behavior:"smooth", block:"center"}); }
+  return !!ok;
+}
+
+async function submit(){
+  const btn = $("#nextBtn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>제출 중…';
+  const skipConsult = SKIP_CONSULT.indexOf(state.interest) >= 0;
+  const payload = {
+    clientType: state.clientType, name: state.name, region: state.region, hospital: state.hospital, email: state.email,
+    interest: state.interest,
+    tests: state.interest === "SCL 검사 정보" ? state.details.join(", ") : "",
+    contents: state.interest === "SCL 기관 소개" ? ORG_CONTENTS_ALL : "",
+    consult: skipConsult ? "해당 없음" : state.consult,
+    cost: state.interest === "SCL 검사 정보" ? state.cost : "해당 없음",
+    phone: (!skipConsult && needPhone()) ? state.phone : "",
+    consent: state.consent ? "동의" : "", marketing: state.marketing ? "동의" : "미동의",
+    token: SCRIPT_TOKEN
+  };
+  try{
+    let res;
+    if (!SCRIPT_URL){
+      await new Promise(r => setTimeout(r, 700));
+      const d = new Date(), p = n => String(n).padStart(2, "0");
+      res = { ok:true, no: Math.floor(Math.random()*900)+100,
+        time: `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` };
+      // 미리 보기 모드에서도 중복 이메일 확인을 흉내 냄 (이 기기 안에서만)
+      try {
+        const key = "scl_preview_emails", list = JSON.parse(localStorage.getItem(key) || "{}"), em = state.email.toLowerCase();
+        if (list[em]) res = { ok:true, duplicate:true, no: list[em] };
+        else { list[em] = res.no; localStorage.setItem(key, JSON.stringify(list)); }
+      } catch(_){}
+      toast("미리 보기 모드: 실제로 저장되지 않았습니다.");
+    } else {
+      const r = await fetch(SCRIPT_URL, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: JSON.stringify(payload) });
+      res = await r.json();
+      if (!res.ok) { const e = new Error(res.error || "저장 실패"); e.userMsg = res.error; throw e; }
+    }
+    // 서버는 개인정보를 돌려주지 않으므로, 화면의 이름·소속은 본인이 방금 입력한 값을 사용
+    const done = res.duplicate
+      ? { duplicate: true, no: res.no, name: state.name, hospital: state.hospital }
+      : { no: res.no, name: state.name, hospital: state.hospital, time: res.time };
+    try { localStorage.setItem(DONE_KEY, JSON.stringify(done)); } catch(e){}
+    showDone(done);
+  } catch(err){
+    console.error(err);
+    toast(err.userMsg || "제출되지 않았습니다. 네트워크를 확인한 뒤 다시 눌러 주세요.");
+    btn.disabled = false; btn.textContent = "다시 제출하기";
+  }
+}
+
+function showDone(d){
+  const dup = !!d.duplicate;
+  $("#dnIcon").hidden = dup; $("#dnAlert").hidden = !dup;
+  document.querySelector('.screen[data-screen="done"]').classList.toggle("dup", dup);
+  $("#dnTitle").textContent = dup ? "이미 참여하셨습니다" : "설문 완료!";
+  $("#dnSub").textContent = dup ? "이 이메일로 참여한 기록이 있습니다." : "참여해 주셔서 감사합니다.";
+  $("#dnMsg").innerHTML = dup ? "선물은 1인 1회 제공됩니다." : "이 화면을 보여 주시고<br>선물을 받아 가세요! 🎁";
+  $("#tNo").textContent = String(d.no).padStart(3, "0");
+  $("#tName").textContent = d.name;
+  $("#tHosp").textContent = d.hospital;
+  $("#tWhen").textContent = String(d.time || "").slice(0, 16);
+  $("#tWhen").hidden = $("#tWhenL").hidden = !d.time;
+  current = "done"; render();
+}
+
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2800); }
+
+$("#nextBtn").addEventListener("click", () => {
+  if (current !== "main" && !validate()) return;
+  const f = flow(), next = f[f.indexOf(current) + 1];
+  if (next === "done") return submit();
+  current = next; render();
+});
+$("#backBtn").addEventListener("click", () => {
+  const f = flow(), i = f.indexOf(current);
+  if (i > 1){ current = f[i - 1]; render(); }
+});
+document.addEventListener("change", e => {
+  const f = e.target.closest("[data-f]"); if (f) f.classList.remove("invalid");
+  if (e.target.name === "consult" || e.target.name === "cost"){ state[e.target.name] = e.target.value; placePhone(); }
+  if (e.target.name === "interest") updateNav();
+  syncChecked();
+});
+document.addEventListener("input", e => { const f = e.target.closest("[data-f]"); if (f) f.classList.remove("invalid"); });
+// 연락처: '010-' 미리 입력, 누르면 커서를 항상 맨 뒤로
+$("#phone").addEventListener("focus", e => {
+  const el = e.target;
+  if (!el.value) el.value = "010-";
+  setTimeout(() => { const n = el.value.length; try { el.setSelectionRange(n, n); } catch(_){} }, 0);
+});
+$("#phone").addEventListener("input", e => {
+  const d = e.target.value.replace(/\D/g, "").slice(0, 11);
+  e.target.value = d.length < 4 ? d : d.length < 8 ? `${d.slice(0,3)}-${d.slice(3)}` : `${d.slice(0,3)}-${d.slice(3, d.length-4)}-${d.slice(-4)}`;
+});
+
+// 이미 참여한 기기면 완료 화면 다시 표시 / 테스트 초기화: 주소 뒤에 ?reset
+try{
+  if (location.search.includes("reset")) localStorage.removeItem(DONE_KEY);
+  const saved = JSON.parse(localStorage.getItem(DONE_KEY) || "null");
+  if (saved) showDone(saved); else render();
+} catch(e){ render(); }
+</script>
+</body>
+</html>
