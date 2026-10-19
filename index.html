@@ -492,7 +492,6 @@ function flow(){
   const f = ["main","basic","interest"];
   if (!it || DETAIL_OPTIONS[it]) f.push("detail");
   if (SKIP_CONSULT.indexOf(it) < 0) f.push("consult");
-  if (it === "SCL 검사 정보") f.push("cost");
   f.push("done");
   return f;
 }
@@ -603,7 +602,7 @@ async function submit(){
     tests: state.interest === "SCL 검사 정보" ? state.details.join(", ") : "",
     contents: state.interest === "SCL 기관 소개" ? ORG_CONTENTS_ALL : "",
     consult: skipConsult ? "해당 없음" : state.consult,
-    cost: state.interest === "SCL 검사 정보" ? state.cost : "해당 없음",
+    cost: "해당 없음", // 검사 비용 상담 페이지 삭제
     phone: (!skipConsult && needPhone()) ? state.phone : "",
     consent: state.consent ? "동의" : "", marketing: state.marketing ? "동의" : "미동의",
     token: SCRIPT_TOKEN
