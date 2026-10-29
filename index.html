@@ -434,9 +434,9 @@ const DETAIL_OPTIONS = {
   "SCL 검사 정보": {
     title: "관심 있는 검사를<br>모두 선택해 주세요",
     items: [
-      ["검사명 1 (입력 예정)", "", "tube"],
-      ["검사명 2 (입력 예정)", "", "tube"],
-      ["검사명 3 (입력 예정)", "", "tube"],
+      ["위암 관련 동반진단검사", "", "tube"],
+      ["난소암 관련 동반진단검사", "", "tube"],
+      ["CINtec® PLUS 면역세포화학염색 검사", "", "tube"],
     ]
   }
 };
@@ -548,7 +548,7 @@ function buildDetails(){
   const cfg = DETAIL_OPTIONS[state.interest];
   if (!cfg) return;
   $("#detailTitle").innerHTML = cfg.title;
-  $("#detailList").innerHTML = cfg.items.map(([v,s,i]) => optHTML("checkbox","detail",v,v,s,i,true)).join("");
+  $("#detailList").innerHTML = cfg.items.map(([v,s,i]) => optHTML("checkbox","detail",v,v.replace(/® /g,"®\u00A0").replace("염색 검사","염색\u00A0검사"),s,i,true)).join("");
   document.querySelectorAll('input[name="detail"]').forEach(i => i.checked = state.details.includes(i.value));
 }
 
