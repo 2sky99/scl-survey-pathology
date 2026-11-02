@@ -116,6 +116,20 @@ h2{font-size:clamp(21px, 6.2vw, 24px);line-height:1.38;font-weight:700;margin:0 
 
 /* 예/아니오 카드 (세로 목록형) */
 .yn{display:flex;flex-direction:column;gap:10px}
+/* 주소 검색 */
+.addr-wrap{position:relative}
+.input.addr{padding-right:44px;cursor:pointer;background:#fff}
+.input.addr:read-only:focus{box-shadow:none;border-color:var(--line)}
+.addr-ic{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--primary);pointer-events:none}
+.hint{font-size:12.5px;color:var(--mute);margin-top:6px}
+.field.invalid .hint{display:none}
+.addr-layer{position:fixed;inset:0;z-index:50;background:#fff;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.addr-layer[hidden]{display:none}
+.addr-head{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 8px 0 20px;border-bottom:1px solid var(--line);flex:none}
+.addr-head b{font-size:17px}
+.addr-head button{width:44px;height:44px;border:0;background:none;display:grid;place-items:center;color:var(--text);cursor:pointer}
+.addr-body{flex:1;min-height:0;overflow:hidden}
 /* 동의 */
 .consent{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1.5px solid transparent}
 .field.invalid .consent{border-color:#F5C2C4}
@@ -280,15 +294,19 @@ body.done-mode,body.done-mode .app{background:#fff}
           <input class="input" type="text" id="name" autocomplete="name" placeholder="이름을 입력해 주세요">
           <div class="err">이름을 입력해 주세요.</div>
         </div>
-        <div class="field" data-f="region">
-          <label class="lbl" for="region">지역<span class="req">*</span></label>
-          <input class="input" type="text" id="region" autocomplete="address-level2" placeholder="예: 경기 용인시">
-          <div class="err">지역을 입력해 주세요.</div>
-        </div>
         <div class="field" data-f="hospital">
           <label class="lbl" for="hospital">소속<span class="req">*</span></label>
           <input class="input" type="text" id="hospital" autocomplete="organization" placeholder="예: OO병원">
           <div class="err">소속을 입력해 주세요.</div>
+        </div>
+        <div class="field" data-f="address">
+          <label class="lbl" for="address">주소<span class="req">*</span></label>
+          <div class="addr-wrap">
+            <input class="input addr" type="text" id="address" readonly placeholder="예: 서울 OO구 OO로 00 (OO병원)">
+            <svg class="addr-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          </div>
+          <div class="hint" id="addrHint">칸을 누르면 소속명이나 도로명으로 검색할 수 있어요.</div>
+          <div class="err">주소를 검색해 주세요.</div>
         </div>
         <div class="field" data-f="email">
           <label class="lbl" for="email">이메일<span class="req">*</span></label>
@@ -305,7 +323,7 @@ body.done-mode,body.done-mode .app{background:#fff}
               <summary>내용 보기</summary>
               <dl>
                 <dt>수집 주체</dt><dd>SCL(서울의과학연구소)</dd>
-                <dt>수집 항목</dt><dd>이름, 지역, 소속, 이메일, 연락처(상담 희망 시)</dd>
+                <dt>수집 항목</dt><dd>이름, 소속, 주소, 이메일, 연락처(상담 희망 시)</dd>
                 <dt>이용 목적</dt><dd>요청하신 자료 및 안내 메일 발송, 상담 신청 시 연락, 고객 관리</dd>
                 <dt>보유 기간</dt><dd>수집일로부터 3년 (기간 경과 시 즉시 파기)</dd>
                 <dd class="note">동의를 거부할 수 있으며, 거부 시 설문 참여 및 선물 제공이 제한됩니다.</dd>
@@ -415,6 +433,13 @@ body.done-mode,body.done-mode .app{background:#fff}
   </footer>
 </div>
 <div class="toast" id="toast"></div>
+<div class="addr-layer" id="addrLayer" hidden>
+  <div class="addr-head"><b>주소 검색</b><button type="button" id="addrClose" aria-label="닫기">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="addr-body" id="addrBody"></div>
+</div>
+<script>window.__pc = "loading";</script>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" async onload="window.__pc='ready'" onerror="window.__pc='error'"></script>
 
 <script>
 /* =========================================================
@@ -474,7 +499,7 @@ function optHTML(type, name, value, title, sub, icon, multi){
 
 const DONE_KEY = "scl_survey_patho_done_v1";
 const $ = s => document.querySelector(s);
-const state = { clientType:"", name:"", region:"", hospital:"", email:"", consent:false, marketing:false,
+const state = { clientType:"", name:"", hospital:"", address:"", sido:"", sigungu:"", email:"", consent:false, marketing:false,
   interest:"", details:[], consult:"", cost:"", phone:"" };
 
 // 선택지 그리기
@@ -560,12 +585,12 @@ function validate(){
   if (current === "basic"){
     state.clientType = radio("clientType");
     state.name = $("#name").value.trim();
-    state.region = $("#region").value.trim();
+    state.address = $("#address").value.trim();
     state.hospital = $("#hospital").value.trim();
     state.email = $("#email").value.trim();
     state.consent = $("#consent").checked;
     state.marketing = $("#marketing").checked;
-    ok = setErr("clientType", !state.clientType) & setErr("name", !state.name) & setErr("region", !state.region) & setErr("hospital", !state.hospital)
+    ok = setErr("clientType", !state.clientType) & setErr("name", !state.name) & setErr("hospital", !state.hospital) & setErr("address", !state.address)
        & setErr("email", !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)) & setErr("consent", !state.consent);
   }
   if (current === "interest"){
@@ -597,7 +622,8 @@ async function submit(){
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>제출 중…';
   const skipConsult = SKIP_CONSULT.indexOf(state.interest) >= 0;
   const payload = {
-    clientType: state.clientType, name: state.name, region: state.region, hospital: state.hospital, email: state.email,
+    clientType: state.clientType, name: state.name, hospital: state.hospital,
+    address: state.address, sido: state.sido, sigungu: state.sigungu, email: state.email,
     interest: state.interest,
     tests: state.interest === "SCL 검사 정보" ? state.details.join(", ") : "",
     contents: state.interest === "SCL 기관 소개" ? ORG_CONTENTS_ALL : "",
@@ -673,6 +699,48 @@ document.addEventListener("change", e => {
   syncChecked();
 });
 document.addEventListener("input", e => { const f = e.target.closest("[data-f]"); if (f) f.classList.remove("invalid"); });
+// ---------- 주소 검색 (카카오 우편번호 서비스) ----------
+function setManualAddress(){ // 검색창을 불러오지 못하면 직접 입력으로 전환
+  const el = $("#address");
+  el.readOnly = false; el.placeholder = "주소를 직접 입력해 주세요";
+  $("#addrHint").textContent = "주소 검색을 불러오지 못해 직접 입력으로 바뀌었어요.";
+  document.querySelector(".addr-ic").style.display = "none";
+}
+function closeAddr(){ $("#addrLayer").hidden = true; $("#addrBody").innerHTML = ""; document.body.style.overflow = ""; }
+function openAddr(){
+  if ($("#address").readOnly === false) return; // 직접 입력 모드
+  if (!(window.daum && daum.Postcode)) {
+    // 아직 불러오는 중이면 잠시 기다렸다가 다시 시도, 불러오기에 실패했을 때만 직접 입력으로 전환
+    if (window.__pc !== "error" && !openAddr.waiting) {
+      openAddr.waiting = true; toast("주소 검색을 불러오는 중이에요");
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        if (window.daum && daum.Postcode) { clearInterval(iv); openAddr.waiting = false; openAddr(); }
+        else if (window.__pc === "error" || Date.now() - t0 > 6000) { clearInterval(iv); openAddr.waiting = false; setManualAddress(); $("#address").focus(); }
+      }, 200);
+      return;
+    }
+    if (!openAddr.waiting) { setManualAddress(); $("#address").focus(); }
+    return;
+  }
+  $("#addrLayer").hidden = false; document.body.style.overflow = "hidden";
+  new daum.Postcode({
+    width: "100%", height: "100%",
+    oncomplete: function(d){
+      const base = d.userSelectedType === "J" ? (d.jibunAddress || d.autoJibunAddress) : (d.roadAddress || d.autoRoadAddress);
+      const extra = d.buildingName && d.userSelectedType !== "J" ? ` (${d.buildingName})` : "";
+      $("#address").value = (base || d.address) + extra;
+      state.address = $("#address").value; state.sido = d.sido || ""; state.sigungu = d.sigungu || "";
+      document.querySelector('[data-f="address"]').classList.remove("invalid");
+      closeAddr();
+    },
+    onclose: function(){ closeAddr(); }
+  }).embed($("#addrBody"), { q: $("#hospital").value.trim(), autoClose: false });
+}
+$("#address").addEventListener("click", openAddr);
+$("#address").addEventListener("input", e => { if (!e.target.readOnly){ state.sido = ""; state.sigungu = ""; } });
+$("#addrClose").addEventListener("click", closeAddr);
+
 // 연락처: '010-' 미리 입력, 누르면 커서를 항상 맨 뒤로
 $("#phone").addEventListener("focus", e => {
   const el = e.target;
